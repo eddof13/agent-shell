@@ -725,10 +725,11 @@ handles viewport mode detection, existing shell reuse, and project context."
           (agent-shell-toggle)
         (let* ((shell-buffer
                 (cond (switch-to-shell
-                       (completing-read "Switch to shell: "
-                                        (mapcar #'buffer-name (or (agent-shell-buffers)
-                                                                  (user-error "No shells available")))
-                                        nil t))
+                       (get-buffer
+                        (completing-read "Switch to shell: "
+                                         (mapcar #'buffer-name (or (agent-shell-buffers)
+                                                                   (user-error "No shells available")))
+                                         nil t)))
                       (new-shell
                        (agent-shell--start :config (or config
                                                        (agent-shell--resolve-preferred-config)
@@ -756,10 +757,11 @@ handles viewport mode detection, existing shell reuse, and project context."
              :shell-buffer shell-buffer))))
     (cond (switch-to-shell
            (let* ((shell-buffer
-                   (completing-read "Switch to shell: "
-                                    (mapcar #'buffer-name (or (agent-shell-buffers)
-                                                              (user-error "No shells available")))
-                                    nil t))
+                   (get-buffer
+                    (completing-read "Switch to shell: "
+                                     (mapcar #'buffer-name (or (agent-shell-buffers)
+                                                               (user-error "No shells available")))
+                                     nil t)))
                   (text (agent-shell--context :shell-buffer shell-buffer)))
              (agent-shell--display-buffer shell-buffer)
              (when text
