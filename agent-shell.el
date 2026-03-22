@@ -872,6 +872,46 @@ Always prompts for agent selection, even if existing shells are available."
   (agent-shell '(4)))
 
 ;;;###autoload
+(defun agent-shell-new-temp-shell ()
+  "Start a new agent shell in a temporary directory.
+
+The directory is trashed when the shell buffer is killed."
+  (interactive)
+  (let* ((location (make-temp-file "temp-" t))
+         (shell-buffer (agent-shell--new-shell :location location)))
+    (with-current-buffer shell-buffer
+      (add-hook 'kill-buffer-hook
+                (lambda ()
+                  (when (file-directory-p location)
+                    (delete-directory location t t)))
+                nil t))))
+
+;;;###autoload
+(defun agent-shell-new-downloads-shell ()
+  "Start a new agent shell in ~/Downloads."
+  (interactive)
+  (agent-shell--new-shell :location (expand-file-name "~/Downloads")))
+
+(cl-defun agent-shell--new-shell (&key location)
+  "Start a new agent shell at LOCATION.
+
+LOCATION is a directory path to use as the shell's working directory."
+  (let* ((default-directory location)
+         (shell-buffer (agent-shell--start
+                        :config (or (agent-shell--resolve-preferred-config)
+                                    (agent-shell-select-config
+                                     :prompt "Start new agent: ")
+                                    (error "No agent config found"))
+                        :session-strategy 'new
+                        :new-session t
+                        :no-focus t)))
+    (if agent-shell-prefer-viewport-interaction
+        (agent-shell-viewport--show-buffer
+         :shell-buffer shell-buffer)
+      (agent-shell--display-buffer shell-buffer))
+    shell-buffer))
+
+;;;###autoload
 (cl-defun agent-shell-restart (&key session-id)
   "Clear conversation by restarting the agent shell in the same project.
 
