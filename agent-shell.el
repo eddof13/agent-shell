@@ -5410,57 +5410,55 @@ ACTIONS as per `agent-shell--make-permission-action'."
                 :new (map-elt diff :new)
                 :file (map-elt diff :file)
                 :title (file-name-nondirectory (map-elt diff :file))
-              :on-accept (lambda ()
-                           (interactive)
-                           (let ((action (agent-shell--resolve-permission-choice-to-action
-                                          :choice 'accept
-                                          :actions actions)))
-                             (agent-shell-diff-kill-buffer (current-buffer))
-                             (with-current-buffer shell-buffer
-                               (agent-shell--send-permission-response
-                                :client client
-                                :request-id request-id
-                                :option-id (map-elt action :option-id)
-                                :state state
-                                :tool-call-id tool-call-id
-                                :message-text (map-elt action :option)))))
-              :on-reject (lambda ()
-                           (interactive)
-                           (when (agent-shell-interrupt-confirmed-p)
-                             (agent-shell-diff-kill-buffer (current-buffer))
-                             (with-current-buffer shell-buffer
-                               (agent-shell-interrupt t))))
-              :on-exit (lambda ()
-                         (if-let ((choice (condition-case nil
-                                              (if (y-or-n-p "Accept changes?")
-                                                  'accept
-                                                'reject)
-                                            (quit 'ignore)))
-                                  (action (agent-shell--resolve-permission-choice-to-action
-                                           :choice choice
-                                           :actions actions)))
-                             (progn
-                               (agent-shell--send-permission-response
-                                :client client
-                                :request-id request-id
-                                :option-id (map-elt action :option-id)
-                                :state state
-                                :tool-call-id tool-call-id
-                                :message-text (map-elt action :option))
-                               (when (eq choice 'reject)
-                                 ;; No point in rejecting the change but letting
-                                 ;; the agent continue (it doesn't know why you
-                                 ;; have rejected the change).
-                                 ;; May as well interrupt so you can course-correct.
-                                 (with-current-buffer shell-buffer
-                                   (agent-shell-interrupt t))))
-                           (message "Ignored"))))))
-        ;; Track the diff buffer in tool-call state so it can be
-        ;; cleaned up when the permission is resolved externally.
-        (when-let ((tool-calls (map-elt state :tool-calls)))
-          (map-put! tool-calls tool-call-id
-                    (map-insert (map-elt tool-calls tool-call-id)
-                                :diff-buffer diff-buffer))))))))
+                :on-accept (lambda ()
+                             (interactive)
+                             (let ((action (agent-shell--resolve-permission-choice-to-action
+                                            :choice 'accept
+                                            :actions actions)))
+                               (with-current-buffer shell-buffer
+                                 (agent-shell--send-permission-response
+                                  :client client
+                                  :request-id request-id
+                                  :option-id (map-elt action :option-id)
+                                  :state state
+                                  :tool-call-id tool-call-id
+                                  :message-text (map-elt action :option)))))
+                :on-reject (lambda ()
+                             (interactive)
+                             (when (agent-shell-interrupt-confirmed-p)
+                               (with-current-buffer shell-buffer
+                                 (agent-shell-interrupt t))))
+                :on-exit (lambda ()
+                           (if-let ((choice (condition-case nil
+                                                (if (y-or-n-p "Accept changes?")
+                                                    'accept
+                                                  'reject)
+                                              (quit 'ignore)))
+                                    (action (agent-shell--resolve-permission-choice-to-action
+                                             :choice choice
+                                             :actions actions)))
+                               (progn
+                                 (agent-shell--send-permission-response
+                                  :client client
+                                  :request-id request-id
+                                  :option-id (map-elt action :option-id)
+                                  :state state
+                                  :tool-call-id tool-call-id
+                                  :message-text (map-elt action :option))
+                                 (when (eq choice 'reject)
+                                   ;; No point in rejecting the change but letting
+                                   ;; the agent continue (it doesn't know why you
+                                   ;; have rejected the change).
+                                   ;; May as well interrupt so you can course-correct.
+                                   (with-current-buffer shell-buffer
+                                     (agent-shell-interrupt t))))
+                             (message "Ignored"))))))
+          ;; Track the diff buffer in tool-call state so it can be
+          ;; cleaned up when the permission is resolved externally.
+          (when-let ((tool-calls (map-elt state :tool-calls)))
+            (map-put! tool-calls tool-call-id
+                      (map-insert (map-elt tool-calls tool-call-id)
+                                  :diff-buffer diff-buffer))))))))
 
 (cl-defun agent-shell--make-permission-button (&key text help action keymap navigatable char option)
   "Create a permission button with TEXT, HELP, ACTION, and KEYMAP.
