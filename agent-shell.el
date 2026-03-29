@@ -1557,7 +1557,7 @@ COMMAND, when present, may be a shell command string or an argv vector."
                                              "user_message_chunk")))
                    (content-text (or (map-nested-elt acp-notification '(params update content text))
                                      (format "[%s]" (or (map-nested-elt acp-notification '(params update content type))
-                                                        "attachment")))))
+                                                        "unknown")))))
                (when new-prompt-p
                  (map-put! state :chunked-group-count (1+ (map-elt state :chunked-group-count)))
                  (agent-shell--append-transcript
