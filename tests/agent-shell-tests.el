@@ -2160,5 +2160,33 @@ that fallback buffer, potentially starting the new shell in the wrong project."
       (when-let ((buf (get-buffer "*test-restart-new-shell*")))
         (kill-buffer buf)))))
 
+(ert-deftest agent-shell-sort-sessions-by-recency-test ()
+  "Test `agent-shell--sort-sessions-by-recency' ordering."
+  ;; Newest `updatedAt' first.
+  (should (equal (agent-shell--sort-sessions-by-recency
+                  '(((sessionId . "a") (updatedAt . "2024-01-01T00:00:00Z"))
+                    ((sessionId . "b") (updatedAt . "2024-02-01T00:00:00Z"))
+                    ((sessionId . "c") (updatedAt . "2024-01-15T00:00:00Z"))))
+                 '(((sessionId . "b") (updatedAt . "2024-02-01T00:00:00Z"))
+                   ((sessionId . "c") (updatedAt . "2024-01-15T00:00:00Z"))
+                   ((sessionId . "a") (updatedAt . "2024-01-01T00:00:00Z")))))
+
+  ;; Falls back to `createdAt' when `updatedAt' is missing.
+  (should (equal (agent-shell--sort-sessions-by-recency
+                  '(((sessionId . "a") (createdAt . "2024-01-01T00:00:00Z"))
+                    ((sessionId . "b") (updatedAt . "2024-02-01T00:00:00Z"))))
+                 '(((sessionId . "b") (updatedAt . "2024-02-01T00:00:00Z"))
+                   ((sessionId . "a") (createdAt . "2024-01-01T00:00:00Z")))))
+
+  ;; Sessions without either timestamp sort last.
+  (should (equal (agent-shell--sort-sessions-by-recency
+                  '(((sessionId . "a"))
+                    ((sessionId . "b") (updatedAt . "2024-02-01T00:00:00Z"))))
+                 '(((sessionId . "b") (updatedAt . "2024-02-01T00:00:00Z"))
+                   ((sessionId . "a")))))
+
+  ;; Empty input returns empty output.
+  (should (equal (agent-shell--sort-sessions-by-recency '()) '())))
+
 (provide 'agent-shell-tests)
 ;;; agent-shell-tests.el ends here

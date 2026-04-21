@@ -4017,6 +4017,25 @@ Must provide ON-SESSION-INIT (lambda ())."
          :shell-buffer shell-buffer
          :on-session-init on-session-init))))))
 
+(defun agent-shell--sort-sessions-by-recency (acp-sessions)
+  "Return ACP-SESSIONS sorted by recency, newest first.
+
+Sorts by `updatedAt' when present, falling back to `createdAt'.
+ISO-8601 timestamps sort lexically the same as chronologically,
+so `string>' yields descending time order.
+
+  (agent-shell--sort-sessions-by-recency
+   \\='(((sessionId . \"a\") (updatedAt . \"2024-01-01T00:00:00Z\"))
+     ((sessionId . \"b\") (updatedAt . \"2024-02-01T00:00:00Z\"))))
+  ;; => (((sessionId . \"b\") (updatedAt . \"2024-02-01T00:00:00Z\"))
+  ;;     ((sessionId . \"a\") (updatedAt . \"2024-01-01T00:00:00Z\")))"
+  (seq-sort (lambda (a b)
+              (string> (or (map-elt a 'updatedAt)
+                           (map-elt a 'createdAt) "")
+                       (or (map-elt b 'updatedAt)
+                           (map-elt b 'createdAt) "")))
+            acp-sessions))
+
 (defun agent-shell--format-session-date (iso-timestamp)
   "Format ISO-TIMESTAMP as a human-friendly date string.
 
@@ -4390,7 +4409,8 @@ SESSION-TITLE is an optional display title for the resumed session."
              :cwd (agent-shell--resolve-path (agent-shell-cwd)))
    :buffer (current-buffer)
    :on-success (lambda (acp-response)
-                 (let ((acp-sessions (append (or (map-elt acp-response 'sessions) '()) nil)))
+                 (let ((acp-sessions (agent-shell--sort-sessions-by-recency
+                                      (append (or (map-elt acp-response 'sessions) '()) nil))))
                    (condition-case nil
                        (let* ((acp-session
                                (pcase agent-shell-session-strategy
