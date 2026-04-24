@@ -4933,6 +4933,22 @@ Returns a buffer object or nil."
                               :new-session t
                               :session-strategy agent-shell-session-strategy))))))
 
+(defun agent-shell-goto-last-interaction ()
+  "Move point to the last interaction in the shell buffer."
+  (when-let ((shell-buffer (agent-shell--shell-buffer)))
+    (with-current-buffer shell-buffer
+      (goto-char comint-last-input-start))))
+
+(defun agent-shell-interaction-at-point ()
+  "Return the interaction at point in the shell buffer.
+Result is of the form ((:prompt . PROMPT) (:response . RESPONSE))."
+  (when-let ((shell-buffer (agent-shell--shell-buffer))
+             (result (with-current-buffer shell-buffer
+                       (or (shell-maker--command-and-response-at-point)
+                           (shell-maker-next-command-and-response t)))))
+    `((:prompt . ,(car result))
+      (:response . ,(cdr result)))))
+
 (defun agent-shell--current-shell ()
   "Current shell for viewport or shell buffer."
   (cond ((derived-mode-p 'agent-shell-mode)
